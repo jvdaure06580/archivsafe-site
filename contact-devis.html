@@ -40,48 +40,99 @@
 
 <section class="page-head"><div class="wrap"><nav class="fil" aria-label="Fil d'Ariane"><ol><li><a href="/">Accueil</a></li><li aria-current="page">Contact et devis</li></ol></nav>
 <h1>Demander un devis gratuit</h1>
-<p>Indiquez le nombre de cartons ou une fourchette : nous vous répondons sous 48 h avec un devis.</p>
+<p>Six questions rapides pour un devis précis, envoyé sous 48 h.</p>
 </div></section>
 <section class="section"><div class="wrap grid-contact">
 <form class="form" id="form-devis" action="https://api.web3forms.com/submit" method="POST" novalidate>
-<input type="hidden" name="access_key" value="VOTRE_CLE_WEB3FORMS">
+<input type="hidden" name="access_key" value="0647ff01-b075-49cd-8194-09a4faf97bb1">
 <input type="hidden" name="subject" value="Nouvelle demande de devis – archivsafe.fr">
 <input type="hidden" name="from_name" value="Site ArchivSafe">
 <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+<fieldset class="bloc"><legend><span>1</span> Vous êtes</legend>
+<div class="cartes deux" role="radiogroup" aria-label="Type de client">
+<label class="carte"><input type="radio" name="type_client" value="Professionnel" required><span>Professionnel</span></label>
+<label class="carte"><input type="radio" name="type_client" value="Particulier"><span>Particulier</span></label>
+</div>
+<div id="bloc-pro" hidden><label for="societe">Raison sociale *</label><input type="text" id="societe" name="raison_sociale" autocomplete="organization"></div>
 <div class="row">
 <div><label for="nom">Nom et prénom *</label><input type="text" id="nom" name="nom" required autocomplete="name"></div>
-<div><label for="entreprise">Entreprise</label><input type="text" id="entreprise" name="entreprise" autocomplete="organization"></div>
-</div>
-<div class="row">
-<div><label for="email">E-mail *</label><input type="email" id="email" name="email" required autocomplete="email"></div>
 <div><label for="tel">Téléphone</label><input type="tel" id="tel" name="telephone" autocomplete="tel"></div>
 </div>
-<div><label for="ville">Ville d'intervention *</label><input type="text" id="ville" name="ville" required></div>
-<fieldset><legend>Service souhaité</legend><div class="choix">
-<label><input type="checkbox" name="service_souhaite" value="Destruction avec certificat" checked> Destruction avec certificat</label>
-<label><input type="checkbox" name="service_souhaite" value="Numérisation"> Numérisation</label>
-</div></fieldset>
-<fieldset class="volume"><legend>Volume de vos archives *</legend>
-<div class="choix" role="radiogroup">
-<label><input type="radio" name="mode_volume" value="cartons" checked> Je connais le nombre de cartons</label>
-<label><input type="radio" name="mode_volume" value="fourchette"> Je donne une fourchette</label>
+<div><label for="email">E-mail *</label><input type="email" id="email" name="email" required autocomplete="email"></div>
+</fieldset>
+
+<fieldset class="bloc"><legend><span>2</span> Lieu d'intervention</legend>
+<div class="row cp-ville">
+<div><label for="cp">Code postal *</label><input type="text" id="cp" name="code_postal" required inputmode="numeric" maxlength="5" pattern="[0-9]{5}" autocomplete="postal-code" placeholder="06580"></div>
+<div><label for="ville">Ville *</label><input type="text" id="ville" name="ville" required list="villes" autocomplete="address-level2" placeholder="Saisissez d'abord le code postal"><datalist id="villes"></datalist></div>
 </div>
-<div class="row" id="bloc-cartons" style="margin-top:14px">
-<div><label for="taille">Taille des cartons</label><select id="taille" name="taille_cartons">
-<option>Boîte d'archives (dos 10 cm environ)</option>
-<option selected>Carton d'archives standard (environ 40 × 30 × 25 cm)</option>
-<option>Carton de déménagement (environ 55 × 35 × 30 cm)</option>
-<option>Tailles mélangées</option></select></div>
+</fieldset>
+
+<fieldset class="bloc"><legend><span>3</span> Service souhaité</legend>
+<div class="cartes deux">
+<label class="carte"><input type="checkbox" name="service_souhaite" value="Destruction avec certificat" checked><span>Destruction avec certificat</span></label>
+<label class="carte"><input type="checkbox" name="service_souhaite" value="Numérisation"><span>Numérisation</span></label>
+</div>
+</fieldset>
+
+<fieldset class="bloc"><legend><span>4</span> Volume de vos archives</legend>
+<div class="cartes deux" role="radiogroup" aria-label="Façon d'indiquer le volume">
+<label class="carte"><input type="radio" name="mode_volume" value="cartons" required><span>Je connais le nombre de cartons</span></label>
+<label class="carte"><input type="radio" name="mode_volume" value="fourchette"><span>Je donne une fourchette</span></label>
+</div>
+<div class="row" id="bloc-cartons" hidden>
+<div><label for="taille">Taille des cartons *</label><select id="taille" name="taille_cartons">
+<option value="" selected disabled>Choisir…</option>
+<option value="boite">Boîte d'archives (dos 10 cm)</option>
+<option value="standard">Carton standard (40 × 30 × 25 cm)</option>
+<option value="demenagement">Carton déménagement (55 × 35 × 30 cm)</option>
+<option value="melange">Tailles mélangées</option></select></div>
 <div><label for="nb">Nombre de cartons *</label><input type="number" id="nb" name="nombre_cartons" min="1" step="1" inputmode="numeric" placeholder="Ex. : 25"></div>
 </div>
-<div id="bloc-fourchette" style="margin-top:14px" hidden>
-<label for="fourchette">Volume estimé</label><select id="fourchette" name="fourchette">
-<option>Moins de 10 cartons</option><option>10 à 30 cartons</option><option>30 à 100 cartons</option><option>100 à 300 cartons</option><option>Plus de 300 cartons</option>
-<option>Une ou deux armoires</option><option>Une pièce ou une cave entière</option><option>Je ne sais pas, je préfère une visite</option></select>
+<div id="bloc-fourchette" hidden>
+<p class="aide">En équivalent cartons d'archives standard (≈ 40 × 30 × 25 cm) *</p>
+<div class="cartes trois" role="radiogroup" aria-label="Fourchette de volume">
+<label class="carte"><input type="radio" name="fourchette" value="1-30"><span>1 à 30 cartons</span></label>
+<label class="carte"><input type="radio" name="fourchette" value="31-100"><span>31 à 100 cartons</span></label>
+<label class="carte"><input type="radio" name="fourchette" value="101-300"><span>101 à 300 cartons</span></label>
+<label class="carte"><input type="radio" name="fourchette" value="301-600"><span>301 à 600 cartons</span></label>
+<label class="carte"><input type="radio" name="fourchette" value="600+"><span>Plus de 600 cartons</span></label>
 </div>
-<p class="aide">Archives en classeurs ou en vrac ? Choisissez une fourchette.</p>
+</div>
+<p class="volume-m3" id="volume-m3" hidden>Volume estimé : <b></b></p>
 </fieldset>
-<div><label for="message">Votre besoin *</label><textarea id="message" name="message" rows="5" required placeholder="Type de documents, étage, ascenseur, accès, date souhaitée…"></textarea></div>
+
+<fieldset class="bloc"><legend><span>5</span> Où se trouvent les archives ?</legend>
+<p class="aide">Cochez tout ce qui s'applique *</p>
+<div class="cartes deux" id="groupe-lieux">
+<label class="carte"><input type="checkbox" name="emplacement" value="Rez-de-chaussée"><span>Rez-de-chaussée</span></label>
+<label class="carte"><input type="checkbox" name="emplacement" value="Étage" data-ascenseur="asc-etage"><span>Étage</span></label>
+<label class="carte"><input type="checkbox" name="emplacement" value="Sous-sol" data-ascenseur="asc-soussol"><span>Sous-sol</span></label>
+<label class="carte"><input type="checkbox" name="emplacement" value="Local souterrain"><span>Local souterrain</span></label>
+</div>
+<div class="sous-question" id="asc-etage" hidden>
+<p class="question">Étage : y a-t-il un ascenseur ? *</p>
+<div class="cartes deux">
+<label class="carte"><input type="radio" name="ascenseur_etage" value="Oui"><span>Oui, il y a un ascenseur</span></label>
+<label class="carte"><input type="radio" name="ascenseur_etage" value="Non"><span>Non, escaliers uniquement</span></label>
+</div>
+<label for="num-etage">Quel étage ?</label><select id="num-etage" name="numero_etage"><option value="">Non précisé</option><option>1er</option><option>2e</option><option>3e</option><option>4e</option><option>5e</option><option>6e et plus</option></select>
+</div>
+<div class="sous-question" id="asc-soussol" hidden>
+<p class="question">Sous-sol : y a-t-il un ascenseur ? *</p>
+<div class="cartes deux">
+<label class="carte"><input type="radio" name="ascenseur_soussol" value="Oui"><span>Oui, il y a un ascenseur</span></label>
+<label class="carte"><input type="radio" name="ascenseur_soussol" value="Non"><span>Non, escaliers uniquement</span></label>
+</div>
+</div>
+</fieldset>
+
+<fieldset class="bloc"><legend><span>6</span> Message complémentaire</legend>
+<label for="message" class="skip">Message complémentaire</label>
+<textarea id="message" name="message" rows="4" placeholder="Type de documents, date souhaitée, contraintes d'accès ou de stationnement… (facultatif)"></textarea>
+</fieldset>
+
 <label class="consent"><input type="checkbox" name="consentement" value="oui" required> J'accepte que mes données soient utilisées pour répondre à ma demande, conformément à la <a href="/politique-de-confidentialite">politique de confidentialité</a>.</label>
 <button type="submit" class="btn btn-primary">Envoyer ma demande de devis</button>
 <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
