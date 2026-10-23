@@ -177,3 +177,74 @@
   };
   window.initDevis();
 })();
+
+/* ---------- Avis clients ---------- */
+(function () {
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+  function moisLib(v) { if (!v) return ''; var p = String(v).split('-'); return p.length > 1 ? MOIS[parseInt(p[1], 10) - 1] + ' ' + p[0] : v; }
+  function dateLib(v) { if (!v) return ''; var d = new Date(v); return isNaN(d) ? v : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); }
+  function etoiles(n) { n = Math.round(n); var s = ''; for (var i = 1; i <= 5; i++) s += '<span class="' + (i <= n ? 'on' : '') + '">★</span>'; return '<span class="stars" aria-label="' + n + ' sur 5">' + s + '</span>'; }
+
+  var listes = document.querySelectorAll('[data-avis]');
+  if (listes.length) {
+    fetch('/avis.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (avis) {
+      if (!Array.isArray(avis) || !avis.length) return;
+      avis.sort(function (a, b) { return String(b.date_avis).localeCompare(String(a.date_avis)); });
+      listes.forEach(function (el) {
+        var max = el.getAttribute('data-avis') === 'tous' ? avis.length : parseInt(el.getAttribute('data-avis'), 10);
+        el.innerHTML = avis.slice(0, max).map(function (a) {
+          var qui = esc(a.nom) + (a.entreprise ? ' · ' + esc(a.entreprise) : '') + (a.ville ? ' · ' + esc(a.ville) : '');
+          return '<article class="avis">' + etoiles(a.note) +
+            '<p class="avis-texte">« ' + esc(a.texte) + ' »</p>' +
+            '<p class="avis-auteur">' + qui + '</p>' +
+            '<p class="avis-dates"><span class="verifie">Avis vérifié</span> Déposé le ' + esc(dateLib(a.date_avis)) +
+            (a.date_prestation ? ' · prestation de ' + esc(moisLib(a.date_prestation)) : '') + '</p></article>';
+        }).join('');
+      });
+      var moy = avis.reduce(function (s, a) { return s + Number(a.note || 0); }, 0) / avis.length;
+      var res = document.getElementById('avis-resume');
+      if (res) { res.hidden = false; res.innerHTML = '<b>' + moy.toFixed(1).replace('.', ',') + ' / 5</b> ' + etoiles(moy) + ' <span>' + avis.length + ' avis vérifié' + (avis.length > 1 ? 's' : '') + '</span>'; }
+      var bloc = document.getElementById('bloc-avis-accueil');
+      if (bloc) bloc.hidden = false;
+    }).catch(function () {});
+  }
+
+  var form = document.getElementById('form-avis');
+  if (!form) return;
+  var params = new URLSearchParams(location.search);
+  var code = (params.get('c') || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
+  if (!code) { document.getElementById('avis-sans-code').hidden = false; return; }
+  form.hidden = false;
+  var dp = params.get('d'); if (dp && /^\d{4}-\d{2}$/.test(dp)) form.querySelector('#date-presta').value = dp;
+  var status = document.getElementById('avis-status');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    var btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Envoi en cours…';
+    var g = function (n) { var el = form.querySelector('[name="' + n + '"]:checked') || form.querySelector('[name="' + n + '"]'); return el ? el.value.trim() : ''; };
+    var avis = { code: code, note: Number(g('note')), texte: g('texte'), nom: g('nom'), entreprise: g('entreprise'), ville: g('ville'), date_prestation: g('date_prestation'), date_avis: new Date().toISOString().slice(0, 10) };
+    var d = new FormData();
+    d.append('access_key', form.querySelector('[name=access_key]').value);
+    d.append('subject', 'Nouvel avis client – code ' + code + ' – ' + avis.note + '/5');
+    d.append('from_name', 'Avis ArchivSafe');
+    if (form.querySelector('[name=botcheck]').checked) d.append('botcheck', 'on');
+    d.append('Code client', code);
+    d.append('Note', avis.note + ' / 5');
+    d.append('Avis', avis.texte);
+    d.append('Nom affiché', avis.nom);
+    d.append('Entreprise', avis.entreprise || '(non affichée)');
+    d.append('Ville', avis.ville || '—');
+    d.append('Mois de la prestation', avis.date_prestation);
+    d.append('À copier dans le suivi des avis', 'AVIS:' + JSON.stringify(avis));
+    fetch(form.action, { method: 'POST', body: d, headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (r) { if (r.success) location.href = '/merci-avis'; else throw 0; })
+      .catch(function () {
+        status.className = 'form-status err';
+        status.textContent = "L'avis n'a pas pu être envoyé. Réessayez ou écrivez-nous à contact@archivsafe.fr.";
+        btn.disabled = false; btn.textContent = 'Publier mon avis';
+      });
+  });
+})();
