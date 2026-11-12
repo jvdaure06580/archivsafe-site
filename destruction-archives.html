@@ -95,5 +95,155 @@
 <div class="actions"><button class="btn btn-primary btn-small" data-cookie="oui">Accepter</button><button class="btn btn-ghost btn-small" data-cookie="non">Refuser</button></div>
 </div>
 <script src="/main.js" defer></script>
+<!-- ===== Assistant ArchivSafe : à coller juste avant </body> ===== -->
+<div id="as-chat">
+  <button id="as-ouvrir" type="button" aria-expanded="false" aria-controls="as-panneau">Une question ? Discutons</button>
+  <div id="as-panneau" role="dialog" aria-label="Assistant ArchivSafe" hidden>
+    <div class="as-entete">
+      <div>
+        <strong>Assistant ArchivSafe</strong>
+        <span>Réponse immédiate, devis par e-mail</span>
+      </div>
+      <button id="as-fermer" type="button" aria-label="Fermer la discussion">×</button>
+    </div>
+    <div id="as-messages" aria-live="polite"></div>
+    <div class="as-form">
+      <label for="as-saisie" class="as-sr">Votre message</label>
+      <textarea id="as-saisie" rows="1" maxlength="2000" placeholder="Écrivez votre message…"></textarea>
+      <button id="as-envoyer" type="button">Envoyer</button>
+    </div>
+    <p class="as-mention">Assistant automatique (IA). Vos coordonnées servent uniquement à vous envoyer votre devis.</p>
+  </div>
+</div>
+
+<style>
+  #as-chat { --as-couleur: #1F3A4D; position: fixed; right: 20px; bottom: 20px; z-index: 2147483000; font-family: inherit; font-size: 15px; line-height: 1.45; color: #1d2329; }
+  #as-chat * { box-sizing: border-box; }
+  #as-ouvrir { background: var(--as-couleur); color: #fff; border: 0; border-radius: 999px; padding: 12px 18px; font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+  #as-panneau { position: absolute; right: 0; bottom: 60px; width: 360px; max-width: calc(100vw - 40px); height: 520px; max-height: calc(100vh - 110px); background: #fff; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.22); display: flex; flex-direction: column; overflow: hidden; }
+  #as-panneau[hidden] { display: none; }
+  #as-chat .as-entete { background: var(--as-couleur); color: #fff; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+  #as-chat .as-entete strong { display: block; }
+  #as-chat .as-entete span { font-size: 12.5px; opacity: .85; }
+  #as-fermer { background: none; border: 0; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+  #as-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #f6f7f8; }
+  #as-chat .as-msg { max-width: 85%; padding: 9px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #as-chat .as-bot { background: #fff; border: 1px solid #e3e7ea; align-self: flex-start; border-bottom-left-radius: 4px; }
+  #as-chat .as-moi { background: var(--as-couleur); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  #as-chat .as-attente { color: #6b7680; font-style: italic; }
+  #as-chat .as-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #e3e7ea; background: #fff; }
+  #as-saisie { flex: 1; resize: none; border: 1px solid #cfd6db; border-radius: 10px; padding: 9px 10px; font: inherit; color: inherit; background: #fff; max-height: 110px; }
+  #as-envoyer { background: var(--as-couleur); color: #fff; border: 0; border-radius: 10px; padding: 0 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  #as-envoyer:disabled { opacity: .5; cursor: default; }
+  #as-chat .as-mention { margin: 0; padding: 6px 12px 10px; font-size: 11.5px; color: #6b7680; background: #fff; }
+  #as-chat button:focus-visible, #as-saisie:focus-visible { outline: 2px solid #E0A100; outline-offset: 2px; }
+  #as-chat .as-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 480px) {
+    #as-chat { right: 12px; bottom: 12px; }
+    #as-panneau { position: fixed; inset: 0; width: auto; max-width: none; height: auto; max-height: none; border-radius: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  }
+</style>
+
+<script>
+(function () {
+  var URL_AGENT = "https://archivsafe-agent.jvdaure06580.workers.dev";
+  var ACCUEIL = "Bonjour ! Je réponds à vos questions sur la destruction et la numérisation d'archives, et je peux préparer votre demande de devis. Que souhaitez-vous faire ?";
+  var CLE = "as-chat-historique";
+
+  var bouton = document.getElementById("as-ouvrir");
+  var panneau = document.getElementById("as-panneau");
+  var fermer = document.getElementById("as-fermer");
+  var zone = document.getElementById("as-messages");
+  var saisie = document.getElementById("as-saisie");
+  var envoyer = document.getElementById("as-envoyer");
+
+  var historique = [];
+  try { historique = JSON.parse(sessionStorage.getItem(CLE)) || []; } catch (e) { historique = []; }
+
+  function sauver() {
+    try { sessionStorage.setItem(CLE, JSON.stringify(historique)); } catch (e) {}
+  }
+
+  function nettoyer(texte) {
+    return String(texte).replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#+\s*/gm, "");
+  }
+
+  function ajouter(texte, role) {
+    var bulle = document.createElement("div");
+    bulle.className = "as-msg " + (role === "user" ? "as-moi" : "as-bot");
+    bulle.textContent = role === "user" ? texte : nettoyer(texte);
+    zone.appendChild(bulle);
+    zone.scrollTop = zone.scrollHeight;
+    return bulle;
+  }
+
+  function afficherTout() {
+    zone.innerHTML = "";
+    ajouter(ACCUEIL, "assistant");
+    historique.forEach(function (m) { ajouter(m.content, m.role); });
+  }
+
+  function ouvrir() {
+    panneau.hidden = false;
+    bouton.setAttribute("aria-expanded", "true");
+    zone.scrollTop = zone.scrollHeight;
+    saisie.focus();
+  }
+
+  function fermerPanneau() {
+    panneau.hidden = true;
+    bouton.setAttribute("aria-expanded", "false");
+    bouton.focus();
+  }
+
+  async function envoyerMessage() {
+    var texte = saisie.value.trim();
+    if (!texte || envoyer.disabled) return;
+
+    saisie.value = "";
+    historique.push({ role: "user", content: texte });
+    sauver();
+    ajouter(texte, "user");
+    envoyer.disabled = true;
+
+    var attente = ajouter("L'assistant écrit…", "assistant");
+    attente.classList.add("as-attente");
+
+    try {
+      var r = await fetch(URL_AGENT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: historique })
+      });
+      var d = await r.json();
+      var reponse = d.reponse || "Je n'ai pas pu répondre. Écrivez-nous à contact@archivsafe.fr.";
+      attente.remove();
+      historique.push({ role: "assistant", content: reponse });
+      sauver();
+      ajouter(reponse, "assistant");
+    } catch (e) {
+      attente.remove();
+      historique.pop();
+      sauver();
+      saisie.value = texte;
+      ajouter("La connexion a échoué. Réessayez, ou écrivez-nous à contact@archivsafe.fr.", "assistant");
+    } finally {
+      envoyer.disabled = false;
+      saisie.focus();
+    }
+  }
+
+  bouton.addEventListener("click", function () { panneau.hidden ? ouvrir() : fermerPanneau(); });
+  fermer.addEventListener("click", fermerPanneau);
+  panneau.addEventListener("keydown", function (e) { if (e.key === "Escape") fermerPanneau(); });
+  envoyer.addEventListener("click", envoyerMessage);
+  saisie.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyerMessage(); }
+  });
+
+  afficherTout();
+})();
+</script>
+<!-- ===== Fin de l'assistant ArchivSafe ===== -->
 </body>
 </html>
